@@ -42,11 +42,12 @@ model Block {
     timeEnd     DateTime
     milageStart Int
     milageEnd   Int
+    city        String
 
     createdBy   User   @relation(fields: [createdById], references: [id])
     createdById String
 
-    @@index([pickupLocation])
+    @@index([createdAt])
     @@index([createdById])
 }
 
