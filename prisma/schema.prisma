@@ -27,6 +27,29 @@ model Post {
     @@index([createdById])
 }
 
+model Block {
+    id                Int      @id @default(autoincrement())
+    createdAt         DateTime @default(now())
+    updatedAt         DateTime @updatedAt
+    pickupLocation    String
+    dayOfWeek         String
+    date              DateTime
+    sceduledTimeStart DateTime
+    sceduledTimeEnd   DateTime
+    pay               Float
+
+    timeStart   DateTime
+    timeEnd     DateTime
+    milageStart Int
+    milageEnd   Int
+
+    createdBy   User   @relation(fields: [createdById], references: [id])
+    createdById String
+
+    @@index([pickupLocation])
+    @@index([createdById])
+}
+
 // Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
@@ -66,6 +89,7 @@ model User {
     accounts      Account[]
     sessions      Session[]
     posts         Post[]
+    blocks        Block[]
 }
 
 model VerificationToken {
