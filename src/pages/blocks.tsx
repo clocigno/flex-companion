@@ -41,10 +41,20 @@ const schema = z.object({
     .string()
     .transform((value) => parseFloat(value))
     .refine((value) => value > 0, "The amount must be greater than zero"),
-  timeStart: z.date(),
-  timeEnd: z.date(),
-  milageStart: z.number().positive(),
-  milageEnd: z.number().positive(),
+  timeStart: z.string().refine(timeValidation, {
+    message: "Invalid time format, expected HH:mm or HH:mm:ss",
+  }),
+  timeEnd: z.string().refine(timeValidation, {
+    message: "Invalid time format, expected HH:mm or HH:mm:ss",
+  }),
+  milageStart: z
+    .string()
+    .transform((value) => parseFloat(value))
+    .refine((value) => value > 0, "The amount must be greater than zero"),
+  milageEnd: z
+    .string()
+    .transform((value) => parseFloat(value))
+    .refine((value) => value > 0, "The amount must be greater than zero"),
   city: z.string().min(1),
 });
 
@@ -57,8 +67,6 @@ function BlockForm() {
   } = useForm({
     resolver: zodResolver(schema),
   });
-
-  console.log("errors", errors);
 
   return (
     <form
@@ -131,6 +139,62 @@ function BlockForm() {
               className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
             />
           )}
+        />
+      </div>
+      <div className="flex gap-4 p-4">
+        <label className="font-bold" htmlFor="timeStart">
+          Time Start
+        </label>
+        <input
+          {...register("timeStart")}
+          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          id="timeStart"
+          type="time"
+        />
+      </div>
+      <div className="flex gap-4 p-4">
+        <label className="font-bold" htmlFor="timeEnd">
+          Time End
+        </label>
+        <input
+          {...register("timeEnd")}
+          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          id="timeEnd"
+          type="time"
+        />
+      </div>
+      <div className="flex gap-4 p-4">
+        <label className="font-bold" htmlFor="milageStart">
+          Milage Start
+        </label>
+        <input
+          {...register("milageStart")}
+          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          id="milageStart"
+          type="number"
+        />
+      </div>
+      <div className="flex gap-4 p-4">
+        <label className="font-bold" htmlFor="milageEnd">
+          Milage End
+        </label>
+        <input
+          {...register("milageEnd")}
+          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          id="milageEnd"
+          type="number"
+        />
+      </div>
+      <div className="flex gap-4 p-4">
+        <label className="font-bold" htmlFor="city">
+          City
+        </label>
+        <input
+          {...register("city")}
+          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          id="city"
+          type="text"
+          placeholder="City"
         />
       </div>
       <button
