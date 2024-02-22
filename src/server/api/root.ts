@@ -1,4 +1,4 @@
-import { blockRouter } from './routers/block';
+import { blockRouter } from "./routers/block";
 import { postRouter } from "~/server/api/routers/post";
 import { createTRPCRouter } from "~/server/api/trpc";
 

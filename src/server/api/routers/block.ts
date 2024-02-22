@@ -1,24 +1,22 @@
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const blockRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(z.object({ 
-      pickupLocation: z.string().min(1), 
-      sceduledTimeStart: z.date(), 
-      sceduledTimeEnd: z.date(), 
-      pay: z.number().positive(), 
-      acceptedAt: z.date(), 
-      timeStart: z.date(),
-      timeEnd: z.date(),
-      milageStart: z.number().positive(),
-      milageEnd: z.number().positive(),
-      city: z.string().min(1),
-    }))
+    .input(
+      z.object({
+        pickupLocation: z.string().min(1),
+        sceduledTimeStart: z.date(),
+        sceduledTimeEnd: z.date(),
+        pay: z.number().positive(),
+        timeStart: z.date(),
+        timeEnd: z.date(),
+        milageStart: z.number().positive(),
+        milageEnd: z.number().positive(),
+        city: z.string().min(1),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       return ctx.db.block.create({
         data: {
@@ -27,7 +25,6 @@ export const blockRouter = createTRPCRouter({
           sceduledTimeStart: input.sceduledTimeStart,
           sceduledTimeEnd: input.sceduledTimeEnd,
           pay: input.pay,
-          acceptedAt: input.acceptedAt,
           timeStart: input.timeStart,
           timeEnd: input.timeEnd,
           milageStart: input.milageStart,
