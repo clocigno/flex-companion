@@ -2,6 +2,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CurrencyInput from "react-currency-input-field";
+import { api } from "~/utils/api";
 
 export default function Blocks() {
   return (
@@ -68,9 +69,29 @@ function BlockForm() {
     resolver: zodResolver(schema),
   });
 
+  const { mutate } = api.block.create.useMutation();
+
+  const onSubmit = (data: z.infer<typeof schema>) => {
+    try {
+      mutate({
+        pickupLocation: data.pickupLocation,
+        sceduledTimeStart: new Date(data.date + "T" + data.sceduledTimeStart),
+        sceduledTimeEnd: new Date(data.date + "T" + data.sceduledTimeEnd),
+        pay: data.pay,
+        timeStart: new Date(data.date + "T" + data.timeStart),
+        timeEnd: new Date(data.date + "T" + data.timeEnd),
+        milageStart: data.milageStart,
+        milageEnd: data.milageEnd,
+        city: data.city,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <form
-      onSubmit={handleSubmit((d) => console.log(d))}
+      onSubmit={handleSubmit((d) => onSubmit(d as z.infer<typeof schema>))}
       className="flex flex-col p-8"
     >
       <div className="flex gap-4 p-4">
