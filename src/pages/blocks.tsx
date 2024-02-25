@@ -3,11 +3,23 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CurrencyInput from "react-currency-input-field";
 import { api } from "~/utils/api";
+import { useRef } from "react";
+
+type BlockFormProps = {
+  formRef: React.RefObject<HTMLDialogElement>;
+};
 
 export default function Blocks() {
+  const formRef = useRef<HTMLDialogElement>(null);
+
   return (
     <div className="flex flex-col items-center justify-center">
-      <BlockForm />
+      <div>
+        <button onClick={() => formRef.current?.showModal()}>Add Block</button>
+      </div>
+      <dialog ref={formRef}>
+        <BlockForm formRef={formRef} />
+      </dialog>
       <BlocksFeed />
     </div>
   );
@@ -60,7 +72,7 @@ const schema = z.object({
   city: z.string().min(1),
 });
 
-function BlockForm() {
+function BlockForm(props: BlockFormProps) {
   const {
     register,
     control,
@@ -219,12 +231,15 @@ function BlockForm() {
           placeholder="City"
         />
       </div>
-      <button
-        className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
-        type="submit"
-      >
-        Submit
-      </button>
+      <div className="flex">
+        <button
+          className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
+          type="submit"
+        >
+          Submit
+        </button>
+        <button onClick={() => props.formRef.current?.close()}>Close</button>
+      </div>
     </form>
   );
 }
@@ -258,10 +273,17 @@ function BlocksFeed() {
     return pay / hours;
   }
 
+  function calcTotalMilage(milageStart: number, milageEnd: number) {
+    return milageEnd - milageStart;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {data.map((block) => (
-        <div key={block.id} className="flex flex-col rounded bg-gray-100 p-4">
+        <div
+          key={block.id}
+          className="grid grid-cols-2 gap-3 rounded bg-gray-100 p-4"
+        >
           <div>
             <span className="font-bold">Pickup Location:</span>{" "}
             {block.pickupLocation}
@@ -278,10 +300,7 @@ function BlocksFeed() {
             <span className="font-bold">Scheduled Time End:</span>{" "}
             {timeFormatter.format(block.scheduledTimeEnd)}
           </div>
-          <div>
-            <span className="font-bold">Pay:</span>{" "}
-            {currencyFormatter.format(block.pay)}
-          </div>
+
           <div>
             <span className="font-bold">Time Start:</span>{" "}
             {timeFormatter.format(block.timeStart)}
@@ -297,15 +316,33 @@ function BlocksFeed() {
             <span className="font-bold">Milage End:</span> {block.milageEnd}
           </div>
           <div>
+            <span className="font-bold">Pay:</span>{" "}
+            {currencyFormatter.format(block.pay)}
+          </div>
+          <div>
             <span className="font-bold">City:</span> {block.city}
           </div>
           <div>
             <span className="font-bold">Estimated Hourly Rate:</span>{" "}
-            {calcHourlyRate(
-              block.scheduledTimeStart,
-              block.scheduledTimeEnd,
-              block.pay,
-            )}
+            {currencyFormatter.format(
+              calcHourlyRate(
+                block.scheduledTimeStart,
+                block.scheduledTimeEnd,
+                block.pay,
+              ),
+            )}{" "}
+            / hour
+          </div>
+          <div>
+            <span className="font-bold">Actual Hourly Rate:</span>{" "}
+            {currencyFormatter.format(
+              calcHourlyRate(block.timeStart, block.timeEnd, block.pay),
+            )}{" "}
+            / hour
+          </div>
+          <div>
+            <span className="font-bold">Total Milage:</span>{" "}
+            {calcTotalMilage(block.milageStart, block.milageEnd)} miles
           </div>
         </div>
       ))}
