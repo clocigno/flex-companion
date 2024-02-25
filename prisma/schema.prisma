@@ -33,8 +33,8 @@ model Block {
     updatedAt DateTime @updatedAt
 
     pickupLocation    String
-    sceduledTimeStart DateTime
-    sceduledTimeEnd   DateTime
+    scheduledTimeStart DateTime
+    scheduledTimeEnd   DateTime
     pay               Float
 
     timeStart   DateTime

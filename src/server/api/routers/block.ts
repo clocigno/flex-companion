@@ -7,8 +7,8 @@ export const blockRouter = createTRPCRouter({
     .input(
       z.object({
         pickupLocation: z.string().min(1),
-        sceduledTimeStart: z.date(),
-        sceduledTimeEnd: z.date(),
+        scheduledTimeStart: z.date(),
+        scheduledTimeEnd: z.date(),
         pay: z.number().positive(),
         timeStart: z.date(),
         timeEnd: z.date(),
@@ -22,8 +22,8 @@ export const blockRouter = createTRPCRouter({
         data: {
           pickupLocation: input.pickupLocation,
           createdBy: { connect: { id: ctx.session.user.id } },
-          sceduledTimeStart: input.sceduledTimeStart,
-          sceduledTimeEnd: input.sceduledTimeEnd,
+          scheduledTimeStart: input.scheduledTimeStart,
+          scheduledTimeEnd: input.scheduledTimeEnd,
           pay: input.pay,
           timeStart: input.timeStart,
           timeEnd: input.timeEnd,
