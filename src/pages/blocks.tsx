@@ -3,73 +3,89 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CurrencyInput from "react-currency-input-field";
 import { api } from "~/utils/api";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
+import { isInt, isISO8601, isTime, isFloat } from "validator";
 
 type BlockFormProps = {
   formRef: React.RefObject<HTMLDialogElement>;
+  defaultValues: Block | undefined;
+};
+
+type BlockFeedProps = {
+  formRef: React.RefObject<HTMLDialogElement>;
+  setFormDefaultValues: React.Dispatch<React.SetStateAction<Block | undefined>>;
+};
+
+type Block = {
+  id: number;
+  pickupLocation: string;
+  scheduledTimeStart: Date;
+  scheduledTimeEnd: Date;
+  pay: number;
+  timeStart: Date;
+  timeEnd: Date;
+  milageStart: number;
+  milageEnd: number;
+  city: string;
 };
 
 export default function Blocks() {
   const formRef = useRef<HTMLDialogElement>(null);
+  const [formDefaultValues, setFormDefaultValues] = useState<Block | undefined>(
+    undefined,
+  );
+
+  const handleAddBlock = () => {
+    setFormDefaultValues(undefined);
+    formRef.current?.showModal();
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex gap-8 p-8">
       <div>
-        <button onClick={() => formRef.current?.showModal()}>Add Block</button>
+        <button
+          className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
+          onClick={handleAddBlock}
+        >
+          Add Block
+        </button>
       </div>
       <dialog ref={formRef}>
-        <BlockForm formRef={formRef} />
+        <BlockForm formRef={formRef} defaultValues={formDefaultValues} />
       </dialog>
-      <BlocksFeed />
+      <BlocksFeed
+        formRef={formRef}
+        setFormDefaultValues={setFormDefaultValues}
+      />
     </div>
   );
 }
 
-const dateValidation = (date: string) => {
-  const regex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!regex.test(date)) {
-    return false;
-  }
-
-  const parsedDate = new Date(date);
-  return parsedDate.toISOString().startsWith(date);
-};
-
-const timeValidation = (time: string) => {
-  const regex = /^(?:[01]\d|2[0-3]):(?:[0-5]\d)(?::(?:[0-5]\d))?$/;
-  return regex.test(time);
-};
-
 const schema = z.object({
-  pickupLocation: z.string().min(1),
-  date: z.string().refine(dateValidation, {
-    message: "Invalid date format, expected YYYY-MM-DD",
-  }),
-  scheduledTimeStart: z.string().refine(timeValidation, {
-    message: "Invalid time format, expected HH:mm or HH:mm:ss",
-  }),
-  scheduledTimeEnd: z.string().refine(timeValidation, {
-    message: "Invalid time format, expected HH:mm or HH:mm:ss",
-  }),
-  pay: z
+  id: z
     .string()
-    .transform((value) => parseFloat(value))
-    .refine((value) => value > 0, "The amount must be greater than zero"),
-  timeStart: z.string().refine(timeValidation, {
-    message: "Invalid time format, expected HH:mm or HH:mm:ss",
-  }),
-  timeEnd: z.string().refine(timeValidation, {
-    message: "Invalid time format, expected HH:mm or HH:mm:ss",
-  }),
+    .refine((val) => isInt(val))
+    .optional(),
+  pickupLocation: z.string().min(1, "Pickup location is required"),
+  date: z.string().refine((val) => isISO8601(val), "Date is required"),
+  scheduledTimeStart: z
+    .string()
+    .refine((val) => isTime(val), "Scheduled starting time is required"),
+  scheduledTimeEnd: z
+    .string()
+    .refine((val) => isTime(val), "Scheduled ending time is required"),
+  pay: z.string().refine((val) => isFloat(val), "Pay amount is required"),
+  timeStart: z
+    .string()
+    .refine((val) => isTime(val), "Starting time is required"),
+  timeEnd: z.string().refine((val) => isTime(val), "Ending time is required"),
   milageStart: z
     .string()
-    .transform((value) => parseFloat(value))
-    .refine((value) => value > 0, "The amount must be greater than zero"),
+    .refine((val) => isInt(val), "Starting milage is required"),
   milageEnd: z
     .string()
-    .transform((value) => parseFloat(value))
-    .refine((value) => value > 0, "The amount must be greater than zero"),
-  city: z.string().min(1),
+    .refine((val) => isInt(val), "Ending milage is required"),
+  city: z.string().min(1, "City is required"),
 });
 
 function BlockForm(props: BlockFormProps) {
@@ -77,30 +93,94 @@ function BlockForm(props: BlockFormProps) {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
   });
 
-  const { mutate } = api.block.create.useMutation();
+  console.log(errors);
+
+  const { mutate: create } = api.block.create.useMutation();
+  const { mutate: update } = api.block.update.useMutation();
 
   const onSubmit = (data: z.infer<typeof schema>) => {
-    try {
-      mutate({
+    if (props.defaultValues) {
+      update({
+        id: props.defaultValues.id,
         pickupLocation: data.pickupLocation,
         scheduledTimeStart: new Date(data.date + "T" + data.scheduledTimeStart),
         scheduledTimeEnd: new Date(data.date + "T" + data.scheduledTimeEnd),
-        pay: data.pay,
+        pay: parseFloat(data.pay),
         timeStart: new Date(data.date + "T" + data.timeStart),
         timeEnd: new Date(data.date + "T" + data.timeEnd),
-        milageStart: data.milageStart,
-        milageEnd: data.milageEnd,
+        milageStart: parseInt(data.milageStart),
+        milageEnd: parseInt(data.milageEnd),
         city: data.city,
       });
-    } catch (error) {
-      console.error(error);
+    } else {
+      create({
+        pickupLocation: data.pickupLocation,
+        scheduledTimeStart: new Date(data.date + "T" + data.scheduledTimeStart),
+        scheduledTimeEnd: new Date(data.date + "T" + data.scheduledTimeEnd),
+        pay: parseFloat(data.pay),
+        timeStart: new Date(data.date + "T" + data.timeStart),
+        timeEnd: new Date(data.date + "T" + data.timeEnd),
+        milageStart: parseInt(data.milageStart),
+        milageEnd: parseInt(data.milageEnd),
+        city: data.city,
+      });
     }
   };
+
+  useEffect(() => {
+    if (props.defaultValues) {
+      setValue("id", props.defaultValues.id.toString());
+      setValue("pickupLocation", props.defaultValues.pickupLocation);
+      setValue(
+        "date",
+        props.defaultValues.scheduledTimeStart.toISOString().split("T")[0],
+      );
+      setValue(
+        "scheduledTimeStart",
+        props.defaultValues.scheduledTimeStart
+          .toISOString()
+          .split("T")[1]
+          ?.slice(0, -8),
+      );
+      setValue(
+        "scheduledTimeEnd",
+        props.defaultValues.scheduledTimeEnd
+          .toISOString()
+          .split("T")[1]
+          ?.slice(0, -8),
+      );
+      setValue("pay", props.defaultValues.pay.toString());
+      setValue(
+        "timeStart",
+        props.defaultValues.timeStart.toISOString().split("T")[1]?.slice(0, -8),
+      );
+      setValue(
+        "timeEnd",
+        props.defaultValues.timeEnd.toISOString().split("T")[1]?.slice(0, -8),
+      );
+      setValue("milageStart", props.defaultValues.milageStart.toString());
+      setValue("milageEnd", props.defaultValues.milageEnd.toString());
+      setValue("city", props.defaultValues.city);
+    } else {
+      setValue("id", undefined);
+      setValue("pickupLocation", "");
+      setValue("date", "");
+      setValue("scheduledTimeStart", "");
+      setValue("scheduledTimeEnd", "");
+      setValue("pay", "");
+      setValue("timeStart", "");
+      setValue("timeEnd", "");
+      setValue("milageStart", "");
+      setValue("milageEnd", "");
+      setValue("city", "");
+    }
+  }, [props.defaultValues, setValue]);
 
   return (
     <form
@@ -108,6 +188,7 @@ function BlockForm(props: BlockFormProps) {
       className="flex flex-col p-8"
     >
       <div className="flex gap-4 p-4">
+        {props.defaultValues && <input type="hidden" {...register("id")} />}
         <label className="font-bold" htmlFor="pickupLocation">
           Pickup Location
         </label>
@@ -116,9 +197,13 @@ function BlockForm(props: BlockFormProps) {
           className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
           id="pickupLocation"
           type="text"
-          placeholder="Pickup Location"
         />
       </div>
+      {errors.pickupLocation && (
+        <span className="text-center text-red-500">
+          {errors.pickupLocation.message?.toString()}
+        </span>
+      )}
       <div className="flex gap-4 p-4">
         <label className="font-bold" htmlFor="date">
           Date
@@ -159,17 +244,13 @@ function BlockForm(props: BlockFormProps) {
         <Controller
           name="pay"
           control={control}
-          render={({ field: { onChange, onBlur, value, ref } }) => (
+          render={({ field: { value, onChange } }) => (
             <CurrencyInput
               id="currency-input"
               name="currency"
-              placeholder="Enter amount"
-              defaultValue={value as number}
-              decimalsLimit={2}
-              onValueChange={(value) => onChange(value)}
-              onBlur={onBlur}
-              ref={ref}
               prefix={"$"}
+              value={value as string}
+              onValueChange={onChange}
               className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
             />
           )}
@@ -199,22 +280,22 @@ function BlockForm(props: BlockFormProps) {
       </div>
       <div className="flex gap-4 p-4">
         <label className="font-bold" htmlFor="milageStart">
-          Milage Start
+          Starting Milage
         </label>
         <input
           {...register("milageStart")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          className="focus:shadow-outline no-spinner rounded border px-2 text-gray-700 shadow focus:outline-none"
           id="milageStart"
           type="number"
         />
       </div>
       <div className="flex gap-4 p-4">
         <label className="font-bold" htmlFor="milageEnd">
-          Milage End
+          Ending Milage
         </label>
         <input
           {...register("milageEnd")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+          className="focus:shadow-outline no-spinner rounded border px-2 text-gray-700 shadow focus:outline-none"
           id="milageEnd"
           type="number"
         />
@@ -228,24 +309,30 @@ function BlockForm(props: BlockFormProps) {
           className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
           id="city"
           type="text"
-          placeholder="City"
         />
       </div>
-      <div className="flex">
+      <div className="flex gap-2">
         <button
           className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
           type="submit"
         >
           Submit
         </button>
-        <button onClick={() => props.formRef.current?.close()}>Close</button>
+        <button
+          className="focus:shadow-outline rounded bg-slate-500 px-4 py-2 font-bold text-white hover:bg-slate-700 focus:outline-none"
+          onClick={() => props.formRef.current?.close()}
+          type="button"
+        >
+          Close
+        </button>
       </div>
     </form>
   );
 }
 
-function BlocksFeed() {
+function BlocksFeed(props: BlockFeedProps) {
   const { data } = api.block.getLatest.useQuery();
+  const { mutate: remove } = api.block.delete.useMutation();
 
   if (!data) {
     return null;
@@ -276,6 +363,15 @@ function BlocksFeed() {
   function calcTotalMilage(milageStart: number, milageEnd: number) {
     return milageEnd - milageStart;
   }
+
+  const handleEditBlock = (block: Block) => {
+    props.setFormDefaultValues(block);
+    props.formRef.current?.showModal();
+  };
+
+  const handleHemoveBlock = (id: number) => {
+    remove(id);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -343,6 +439,20 @@ function BlocksFeed() {
           <div>
             <span className="font-bold">Total Milage:</span>{" "}
             {calcTotalMilage(block.milageStart, block.milageEnd)} miles
+          </div>
+          <div className="flex gap-4">
+            <button
+              className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
+              onClick={() => handleEditBlock(block)}
+            >
+              Edit
+            </button>
+            <button
+              className="focus:shadow-outline rounded bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-700 focus:outline-none"
+              onClick={() => handleHemoveBlock(block.id)}
+            >
+              Delete
+            </button>
           </div>
         </div>
       ))}
