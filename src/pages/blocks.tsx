@@ -1,10 +1,11 @@
-import { z } from "zod";
+import { ZodError, z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CurrencyInput from "react-currency-input-field";
 import { api } from "~/utils/api";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, use } from "react";
 import { isInt, isISO8601, isTime, isFloat } from "validator";
+import { Toaster, toast } from "react-hot-toast";
 
 type BlockFormProps = {
   formRef: React.RefObject<HTMLDialogElement>;
@@ -74,7 +75,11 @@ const schema = z.object({
   scheduledTimeEnd: z
     .string()
     .refine((val) => isTime(val), "Scheduled ending time is required"),
-  pay: z.string().refine((val) => isFloat(val), "Pay amount is required"),
+  pay: z
+    .string({
+      required_error: "Pay amount is required",
+    })
+    .refine((val) => isFloat(val), "Pay amount is required"),
   timeStart: z
     .string()
     .refine((val) => isTime(val), "Starting time is required"),
@@ -99,10 +104,22 @@ function BlockForm(props: BlockFormProps) {
     resolver: zodResolver(schema),
   });
 
-  console.log(errors);
+  const ctx = api.useContext();
 
-  const { mutate: create } = api.block.create.useMutation();
-  const { mutate: update } = api.block.update.useMutation();
+  const onSuccessfulSubmit = () => {
+    props.formRef.current?.close();
+    void ctx.block.getLatest.invalidate();
+  };
+
+  const { mutate: create, isLoading: isCreating } =
+    api.block.create.useMutation({
+      onSuccess: onSuccessfulSubmit,
+    });
+  const { mutate: update, isLoading: isEditing } = api.block.update.useMutation(
+    {
+      onSuccess: onSuccessfulSubmit,
+    },
+  );
 
   const onSubmit = (data: z.infer<typeof schema>) => {
     if (props.defaultValues) {
@@ -182,11 +199,24 @@ function BlockForm(props: BlockFormProps) {
     }
   }, [props.defaultValues, setValue]);
 
+  useEffect(() => {
+    for (const [, value] of Object.entries(errors)) {
+      if (value?.message) {
+        const errorMessage =
+          typeof value.message === "object"
+            ? "An error occurred."
+            : value.message.toString();
+        toast.error(errorMessage);
+      }
+    }
+  }, [errors]);
+
   return (
     <form
       onSubmit={handleSubmit((d) => onSubmit(d as z.infer<typeof schema>))}
       className="flex flex-col p-8"
     >
+      <Toaster position="bottom-center" />
       <div className="flex gap-4 p-4">
         {props.defaultValues && <input type="hidden" {...register("id")} />}
         <label className="font-bold" htmlFor="pickupLocation">
@@ -199,11 +229,6 @@ function BlockForm(props: BlockFormProps) {
           type="text"
         />
       </div>
-      {errors.pickupLocation && (
-        <span className="text-center text-red-500">
-          {errors.pickupLocation.message?.toString()}
-        </span>
-      )}
       <div className="flex gap-4 p-4">
         <label className="font-bold" htmlFor="date">
           Date
@@ -332,7 +357,13 @@ function BlockForm(props: BlockFormProps) {
 
 function BlocksFeed(props: BlockFeedProps) {
   const { data } = api.block.getLatest.useQuery();
-  const { mutate: remove } = api.block.delete.useMutation();
+  const ctx = api.useContext();
+
+  const { mutate: remove } = api.block.delete.useMutation({
+    onSuccess: () => {
+      void ctx.block.getLatest.invalidate();
+    },
+  });
 
   if (!data) {
     return null;
