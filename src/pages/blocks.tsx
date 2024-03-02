@@ -79,38 +79,38 @@ export default function Blocks() {
   );
 }
 
-const schema = z.object({
-  id: z
-    .string()
-    .refine((val) => isInt(val))
-    .optional(),
-  pickupLocation: z.string().min(1, "Pickup location is required"),
-  date: z.string().refine((val) => isISO8601(val), "Date is required"),
-  scheduledTimeStart: z
-    .string()
-    .refine((val) => isTime(val), "Scheduled starting time is required"),
-  scheduledTimeEnd: z
-    .string()
-    .refine((val) => isTime(val), "Scheduled ending time is required"),
-  pay: z
-    .string({
-      required_error: "Pay amount is required",
-    })
-    .refine((val) => isFloat(val), "Pay amount is required"),
-  timeStart: z
-    .string()
-    .refine((val) => isTime(val), "Starting time is required"),
-  timeEnd: z.string().refine((val) => isTime(val), "Ending time is required"),
-  milageStart: z
-    .string()
-    .refine((val) => isInt(val), "Starting milage is required"),
-  milageEnd: z
-    .string()
-    .refine((val) => isInt(val), "Ending milage is required"),
-  city: z.string().min(1, "City is required"),
-});
-
 function BlockForm(props: BlockFormProps) {
+  const schema = z.object({
+    id: z
+      .string()
+      .refine((val) => isInt(val))
+      .optional(),
+    pickupLocation: z.string().min(1, "Pickup location is required"),
+    date: z.string().refine((val) => isISO8601(val), "Date is required"),
+    scheduledTimeStart: z
+      .string()
+      .refine((val) => isTime(val), "Scheduled starting time is required"),
+    scheduledTimeEnd: z
+      .string()
+      .refine((val) => isTime(val), "Scheduled ending time is required"),
+    pay: z
+      .string({
+        required_error: "Pay amount is required",
+      })
+      .refine((val) => isFloat(val), "Pay amount is required"),
+    timeStart: z
+      .string()
+      .refine((val) => isTime(val), "Starting time is required"),
+    timeEnd: z.string().refine((val) => isTime(val), "Ending time is required"),
+    milageStart: z
+      .string()
+      .refine((val) => isInt(val), "Starting milage is required"),
+    milageEnd: z
+      .string()
+      .refine((val) => isInt(val), "Ending milage is required"),
+    city: z.string().min(1, "City is required"),
+  });
+
   const {
     register,
     control,
