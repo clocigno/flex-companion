@@ -9,6 +9,8 @@ import { isInt, isISO8601, isTime, isFloat } from "validator";
 import { Toaster, toast } from "react-hot-toast";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import type { AppRouter } from "~/server/api/root";
+import { FaRegTrashCan } from "react-icons/fa6";
+import { IconContext } from "react-icons";
 
 type BlockFormProps = {
   formRef: React.RefObject<HTMLDialogElement>;
@@ -479,18 +481,21 @@ function BlocksFeed(props: BlockFeedProps) {
             label="Total Milage"
             value={`${calcTotalMilage(block.milageStart, block.milageEnd)} miles`}
           />
-          <div className="flex gap-4">
+          <div className="flex gap-6">
             <button
               className="focus:shadow-outline sticky top-8 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
               onClick={() => handleEditBlock(block)}
             >
               Edit
             </button>
-            <button
-              className="focus:shadow-outline rounded bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-700 focus:outline-none"
-              onClick={() => handleRemoveBlock(block.id)}
-            >
-              Delete
+            <button onClick={() => handleRemoveBlock(block.id)}>
+              <IconContext.Provider
+                value={{
+                  className: "size-full text-orange-500 hover:text-orange-600",
+                }}
+              >
+                <FaRegTrashCan />
+              </IconContext.Provider>
             </button>
           </div>
         </div>
