@@ -59,10 +59,10 @@ export default function Blocks() {
   };
 
   return (
-    <div className="flex gap-8 p-8">
+    <div className="flex justify-center gap-8 p-8">
       <div>
         <button
-          className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
+          className="focus:shadow-outline sticky top-8 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
           onClick={handleAddBlock}
         >
           Add Block
@@ -172,6 +172,11 @@ function BlockForm(props: BlockFormProps) {
     }
   };
 
+  const onClose = () => {
+    toast.dismiss();
+    props.formRef.current?.close();
+  };
+
   useEffect(() => {
     const setValues = (defaultValues: Block | undefined) => {
       const fields = [
@@ -186,25 +191,32 @@ function BlockForm(props: BlockFormProps) {
         {
           key: "date",
           value: defaultValues
-            ? defaultValues.scheduledTimeStart.toISOString().split("T")[0]
+            ? new Date(
+                defaultValues.scheduledTimeStart.getTime() -
+                  defaultValues.scheduledTimeStart.getTimezoneOffset() *
+                    60 *
+                    1000,
+              )
+                .toISOString()
+                .split("T")[0]
             : "",
         },
         {
           key: "scheduledTimeStart",
           value: defaultValues
             ? defaultValues.scheduledTimeStart
-                .toISOString()
-                .split("T")[1]
-                ?.slice(0, -8)
+                .toTimeString()
+                .split(" ")[0]
+                ?.slice(0, -3)
             : "",
         },
         {
           key: "scheduledTimeEnd",
           value: defaultValues
             ? defaultValues.scheduledTimeEnd
-                .toISOString()
-                .split("T")[1]
-                ?.slice(0, -8)
+                .toTimeString()
+                .split(" ")[0]
+                ?.slice(0, -3)
             : "",
         },
         {
@@ -214,13 +226,13 @@ function BlockForm(props: BlockFormProps) {
         {
           key: "timeStart",
           value: defaultValues
-            ? defaultValues.timeStart.toISOString().split("T")[1]?.slice(0, -8)
+            ? defaultValues.timeStart.toTimeString().split(" ")[0]?.slice(0, -3)
             : "",
         },
         {
           key: "timeEnd",
           value: defaultValues
-            ? defaultValues.timeEnd.toISOString().split("T")[1]?.slice(0, -8)
+            ? defaultValues.timeEnd.toTimeString().split(" ")[0]?.slice(0, -3)
             : "",
         },
         {
@@ -316,7 +328,7 @@ function BlockForm(props: BlockFormProps) {
       <InputField label="City" id="city" type="text" register={register} />
       <div className="flex gap-2">
         <button
-          className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
+          className="focus:shadow-outline sticky top-8 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
           type="submit"
           disabled={isCreating || isEditing}
         >
@@ -324,7 +336,7 @@ function BlockForm(props: BlockFormProps) {
         </button>
         <button
           className="focus:shadow-outline rounded bg-slate-500 px-4 py-2 font-bold text-white hover:bg-slate-700 focus:outline-none"
-          onClick={() => props.formRef.current?.close()}
+          onClick={onClose}
           type="button"
         >
           Close
@@ -428,7 +440,7 @@ function BlocksFeed(props: BlockFeedProps) {
       {data.map((block) => (
         <div
           key={block.id}
-          className="grid grid-cols-2 gap-3 rounded bg-gray-100 p-4"
+          className="grid grid-cols-2 gap-3 rounded p-4 shadow-lg"
         >
           <DataCell label="Pickup Location" value={block.pickupLocation} />
           <DataCell
@@ -469,7 +481,7 @@ function BlocksFeed(props: BlockFeedProps) {
           />
           <div className="flex gap-4">
             <button
-              className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
+              className="focus:shadow-outline sticky top-8 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
               onClick={() => handleEditBlock(block)}
             >
               Edit
