@@ -1,11 +1,14 @@
-import { ZodError, z } from "zod";
+import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
+import type { UseFormRegister, Control, FieldValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CurrencyInput from "react-currency-input-field";
 import { api } from "~/utils/api";
-import { useRef, useState, useEffect, use } from "react";
+import { useRef, useState, useEffect } from "react";
 import { isInt, isISO8601, isTime, isFloat } from "validator";
 import { Toaster, toast } from "react-hot-toast";
+import type { TRPCClientErrorLike } from "@trpc/client";
+import type { AppRouter } from "~/server/api/root";
 
 type BlockFormProps = {
   formRef: React.RefObject<HTMLDialogElement>;
@@ -28,6 +31,20 @@ type Block = {
   milageStart: number;
   milageEnd: number;
   city: string;
+};
+
+type InputFieldProps = {
+  label: string;
+  id: keyof FieldValues;
+  type?: string;
+  register: UseFormRegister<FieldValues>;
+  control?: Control<FieldValues>;
+  isCurrency?: boolean;
+};
+
+type DataCellProps = {
+  label: string;
+  value: string | number;
 };
 
 export default function Blocks() {
@@ -104,98 +121,126 @@ function BlockForm(props: BlockFormProps) {
     resolver: zodResolver(schema),
   });
 
-  const ctx = api.useContext();
+  const ctx = api.useUtils();
 
   const onSuccessfulSubmit = () => {
     props.formRef.current?.close();
     void ctx.block.getLatest.invalidate();
   };
 
+  const onFailedSubmit = (e: TRPCClientErrorLike<AppRouter>) => {
+    const errorMessage = e.data?.zodError?.fieldErrors.content;
+    if (errorMessage?.[0]) {
+      toast.error(errorMessage[0]);
+    } else {
+      toast.error("Failed to post! Please try again later.");
+    }
+  };
+
   const { mutate: create, isLoading: isCreating } =
     api.block.create.useMutation({
       onSuccess: onSuccessfulSubmit,
+      onError: onFailedSubmit,
     });
+
   const { mutate: update, isLoading: isEditing } = api.block.update.useMutation(
     {
       onSuccess: onSuccessfulSubmit,
+      onError: onFailedSubmit,
     },
   );
 
   const onSubmit = (data: z.infer<typeof schema>) => {
+    const submissionObject = {
+      pickupLocation: data.pickupLocation,
+      scheduledTimeStart: new Date(data.date + "T" + data.scheduledTimeStart),
+      scheduledTimeEnd: new Date(data.date + "T" + data.scheduledTimeEnd),
+      pay: parseFloat(data.pay),
+      timeStart: new Date(data.date + "T" + data.timeStart),
+      timeEnd: new Date(data.date + "T" + data.timeEnd),
+      milageStart: parseInt(data.milageStart),
+      milageEnd: parseInt(data.milageEnd),
+      city: data.city,
+    };
     if (props.defaultValues) {
       update({
         id: props.defaultValues.id,
-        pickupLocation: data.pickupLocation,
-        scheduledTimeStart: new Date(data.date + "T" + data.scheduledTimeStart),
-        scheduledTimeEnd: new Date(data.date + "T" + data.scheduledTimeEnd),
-        pay: parseFloat(data.pay),
-        timeStart: new Date(data.date + "T" + data.timeStart),
-        timeEnd: new Date(data.date + "T" + data.timeEnd),
-        milageStart: parseInt(data.milageStart),
-        milageEnd: parseInt(data.milageEnd),
-        city: data.city,
+        ...submissionObject,
       });
     } else {
-      create({
-        pickupLocation: data.pickupLocation,
-        scheduledTimeStart: new Date(data.date + "T" + data.scheduledTimeStart),
-        scheduledTimeEnd: new Date(data.date + "T" + data.scheduledTimeEnd),
-        pay: parseFloat(data.pay),
-        timeStart: new Date(data.date + "T" + data.timeStart),
-        timeEnd: new Date(data.date + "T" + data.timeEnd),
-        milageStart: parseInt(data.milageStart),
-        milageEnd: parseInt(data.milageEnd),
-        city: data.city,
-      });
+      create(submissionObject);
     }
   };
 
   useEffect(() => {
+    const setValues = (defaultValues: Block | undefined) => {
+      const fields = [
+        {
+          key: "id",
+          value: defaultValues ? defaultValues.id.toString() : undefined,
+        },
+        {
+          key: "pickupLocation",
+          value: defaultValues ? defaultValues.pickupLocation : "",
+        },
+        {
+          key: "date",
+          value: defaultValues
+            ? defaultValues.scheduledTimeStart.toISOString().split("T")[0]
+            : "",
+        },
+        {
+          key: "scheduledTimeStart",
+          value: defaultValues
+            ? defaultValues.scheduledTimeStart
+                .toISOString()
+                .split("T")[1]
+                ?.slice(0, -8)
+            : "",
+        },
+        {
+          key: "scheduledTimeEnd",
+          value: defaultValues
+            ? defaultValues.scheduledTimeEnd
+                .toISOString()
+                .split("T")[1]
+                ?.slice(0, -8)
+            : "",
+        },
+        {
+          key: "pay",
+          value: defaultValues ? defaultValues.pay.toString() : "",
+        },
+        {
+          key: "timeStart",
+          value: defaultValues
+            ? defaultValues.timeStart.toISOString().split("T")[1]?.slice(0, -8)
+            : "",
+        },
+        {
+          key: "timeEnd",
+          value: defaultValues
+            ? defaultValues.timeEnd.toISOString().split("T")[1]?.slice(0, -8)
+            : "",
+        },
+        {
+          key: "milageStart",
+          value: defaultValues ? defaultValues.milageStart.toString() : "",
+        },
+        {
+          key: "milageEnd",
+          value: defaultValues ? defaultValues.milageEnd.toString() : "",
+        },
+        { key: "city", value: defaultValues ? defaultValues.city : "" },
+      ];
+
+      fields.forEach(({ key, value }) => setValue(key, value));
+    };
+
     if (props.defaultValues) {
-      setValue("id", props.defaultValues.id.toString());
-      setValue("pickupLocation", props.defaultValues.pickupLocation);
-      setValue(
-        "date",
-        props.defaultValues.scheduledTimeStart.toISOString().split("T")[0],
-      );
-      setValue(
-        "scheduledTimeStart",
-        props.defaultValues.scheduledTimeStart
-          .toISOString()
-          .split("T")[1]
-          ?.slice(0, -8),
-      );
-      setValue(
-        "scheduledTimeEnd",
-        props.defaultValues.scheduledTimeEnd
-          .toISOString()
-          .split("T")[1]
-          ?.slice(0, -8),
-      );
-      setValue("pay", props.defaultValues.pay.toString());
-      setValue(
-        "timeStart",
-        props.defaultValues.timeStart.toISOString().split("T")[1]?.slice(0, -8),
-      );
-      setValue(
-        "timeEnd",
-        props.defaultValues.timeEnd.toISOString().split("T")[1]?.slice(0, -8),
-      );
-      setValue("milageStart", props.defaultValues.milageStart.toString());
-      setValue("milageEnd", props.defaultValues.milageEnd.toString());
-      setValue("city", props.defaultValues.city);
+      setValues(props.defaultValues);
     } else {
-      setValue("id", undefined);
-      setValue("pickupLocation", "");
-      setValue("date", "");
-      setValue("scheduledTimeStart", "");
-      setValue("scheduledTimeEnd", "");
-      setValue("pay", "");
-      setValue("timeStart", "");
-      setValue("timeEnd", "");
-      setValue("milageStart", "");
-      setValue("milageEnd", "");
-      setValue("city", "");
+      setValues(undefined);
     }
   }, [props.defaultValues, setValue]);
 
@@ -217,129 +262,63 @@ function BlockForm(props: BlockFormProps) {
       className="flex flex-col p-8"
     >
       <Toaster position="bottom-center" />
-      <div className="flex gap-4 p-4">
-        {props.defaultValues && <input type="hidden" {...register("id")} />}
-        <label className="font-bold" htmlFor="pickupLocation">
-          Pickup Location
-        </label>
-        <input
-          {...register("pickupLocation")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="pickupLocation"
-          type="text"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="date">
-          Date
-        </label>
-        <input
-          {...register("date")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="date"
-          type="date"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="scheduledTimeStart">
-          Scheduled Time Start
-        </label>
-        <input
-          {...register("scheduledTimeStart")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="scheduledTimeStart"
-          type="time"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="scheduledTimeEnd">
-          Scheduled Time End
-        </label>
-        <input
-          {...register("scheduledTimeEnd")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="scheduledTimeEnd"
-          type="time"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="pay">
-          Pay
-        </label>
-        <Controller
-          name="pay"
-          control={control}
-          render={({ field: { value, onChange } }) => (
-            <CurrencyInput
-              id="currency-input"
-              name="currency"
-              prefix={"$"}
-              value={value as string}
-              onValueChange={onChange}
-              className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-            />
-          )}
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="timeStart">
-          Time Start
-        </label>
-        <input
-          {...register("timeStart")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="timeStart"
-          type="time"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="timeEnd">
-          Time End
-        </label>
-        <input
-          {...register("timeEnd")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="timeEnd"
-          type="time"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="milageStart">
-          Starting Milage
-        </label>
-        <input
-          {...register("milageStart")}
-          className="focus:shadow-outline no-spinner rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="milageStart"
-          type="number"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="milageEnd">
-          Ending Milage
-        </label>
-        <input
-          {...register("milageEnd")}
-          className="focus:shadow-outline no-spinner rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="milageEnd"
-          type="number"
-        />
-      </div>
-      <div className="flex gap-4 p-4">
-        <label className="font-bold" htmlFor="city">
-          City
-        </label>
-        <input
-          {...register("city")}
-          className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
-          id="city"
-          type="text"
-        />
-      </div>
+      {props.defaultValues && <input type="hidden" {...register("id")} />}
+      <InputField
+        label="Pickup Location"
+        id="pickupLocation"
+        type="text"
+        register={register}
+      />
+      <InputField label="Date" id="date" type="date" register={register} />
+      <InputField
+        label="Scheduled Time Start"
+        id="scheduledTimeStart"
+        type="time"
+        register={register}
+      />
+      <InputField
+        label="Scheduled Time End"
+        id="scheduledTimeEnd"
+        type="time"
+        register={register}
+      />
+      <InputField
+        label="Pay"
+        id="pay"
+        isCurrency
+        control={control}
+        register={register}
+      />
+      <InputField
+        label="Time Start"
+        id="timeStart"
+        type="time"
+        register={register}
+      />
+      <InputField
+        label="Time End"
+        id="timeEnd"
+        type="time"
+        register={register}
+      />
+      <InputField
+        label="Starting Milage"
+        id="milageStart"
+        type="number"
+        register={register}
+      />
+      <InputField
+        label="Ending Milage"
+        id="milageEnd"
+        type="number"
+        register={register}
+      />
+      <InputField label="City" id="city" type="text" register={register} />
       <div className="flex gap-2">
         <button
           className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
           type="submit"
+          disabled={isCreating || isEditing}
         >
           Submit
         </button>
@@ -355,9 +334,49 @@ function BlockForm(props: BlockFormProps) {
   );
 }
 
+const InputField: React.FC<InputFieldProps> = ({
+  label,
+  id,
+  type,
+  register,
+  control,
+  isCurrency,
+}) => {
+  return (
+    <div className="flex gap-4 p-4">
+      <label className="font-bold" htmlFor={id}>
+        {label}
+      </label>
+      {isCurrency ? (
+        <Controller
+          name={id}
+          control={control}
+          render={({ field: { value, onChange } }) => (
+            <CurrencyInput
+              id="currency-input"
+              name="currency"
+              prefix={"$"}
+              value={value as string}
+              onValueChange={onChange}
+              className="focus:shadow-outline rounded border px-2 text-gray-700 shadow focus:outline-none"
+            />
+          )}
+        />
+      ) : (
+        <input
+          {...register(id)}
+          className={`focus:shadow-outline ${type === "number" ? "no-spinner" : ""} rounded border px-2 text-gray-700 shadow focus:outline-none`}
+          id={id}
+          type={type}
+        />
+      )}
+    </div>
+  );
+};
+
 function BlocksFeed(props: BlockFeedProps) {
   const { data } = api.block.getLatest.useQuery();
-  const ctx = api.useContext();
+  const ctx = api.useUtils();
 
   const { mutate: remove } = api.block.delete.useMutation({
     onSuccess: () => {
@@ -400,7 +419,7 @@ function BlocksFeed(props: BlockFeedProps) {
     props.formRef.current?.showModal();
   };
 
-  const handleHemoveBlock = (id: number) => {
+  const handleRemoveBlock = (id: number) => {
     remove(id);
   };
 
@@ -411,66 +430,43 @@ function BlocksFeed(props: BlockFeedProps) {
           key={block.id}
           className="grid grid-cols-2 gap-3 rounded bg-gray-100 p-4"
         >
-          <div>
-            <span className="font-bold">Pickup Location:</span>{" "}
-            {block.pickupLocation}
-          </div>
-          <div>
-            <span className="font-bold">Date:</span>{" "}
-            {dateFormatter.format(block.scheduledTimeStart)}
-          </div>
-          <div>
-            <span className="font-bold">Scheduled Time Start:</span>{" "}
-            {timeFormatter.format(block.scheduledTimeStart)}
-          </div>
-          <div>
-            <span className="font-bold">Scheduled Time End:</span>{" "}
-            {timeFormatter.format(block.scheduledTimeEnd)}
-          </div>
-
-          <div>
-            <span className="font-bold">Time Start:</span>{" "}
-            {timeFormatter.format(block.timeStart)}
-          </div>
-          <div>
-            <span className="font-bold">Time End:</span>{" "}
-            {timeFormatter.format(block.timeEnd)}
-          </div>
-          <div>
-            <span className="font-bold">Milage Start:</span> {block.milageStart}
-          </div>
-          <div>
-            <span className="font-bold">Milage End:</span> {block.milageEnd}
-          </div>
-          <div>
-            <span className="font-bold">Pay:</span>{" "}
-            {currencyFormatter.format(block.pay)}
-          </div>
-          <div>
-            <span className="font-bold">City:</span> {block.city}
-          </div>
-          <div>
-            <span className="font-bold">Estimated Hourly Rate:</span>{" "}
-            {currencyFormatter.format(
-              calcHourlyRate(
-                block.scheduledTimeStart,
-                block.scheduledTimeEnd,
-                block.pay,
-              ),
-            )}{" "}
-            / hour
-          </div>
-          <div>
-            <span className="font-bold">Actual Hourly Rate:</span>{" "}
-            {currencyFormatter.format(
-              calcHourlyRate(block.timeStart, block.timeEnd, block.pay),
-            )}{" "}
-            / hour
-          </div>
-          <div>
-            <span className="font-bold">Total Milage:</span>{" "}
-            {calcTotalMilage(block.milageStart, block.milageEnd)} miles
-          </div>
+          <DataCell label="Pickup Location" value={block.pickupLocation} />
+          <DataCell
+            label="Date"
+            value={dateFormatter.format(block.scheduledTimeStart)}
+          />
+          <DataCell
+            label="Scheduled Time Start"
+            value={timeFormatter.format(block.scheduledTimeStart)}
+          />
+          <DataCell
+            label="Scheduled Time End"
+            value={timeFormatter.format(block.scheduledTimeEnd)}
+          />
+          <DataCell
+            label="Time Start"
+            value={timeFormatter.format(block.timeStart)}
+          />
+          <DataCell
+            label="Time End"
+            value={timeFormatter.format(block.timeEnd)}
+          />
+          <DataCell label="Milage Start" value={block.milageStart} />
+          <DataCell label="Milage End" value={block.milageEnd} />
+          <DataCell label="Pay" value={currencyFormatter.format(block.pay)} />
+          <DataCell label="City" value={block.city} />
+          <DataCell
+            label="Estimated Hourly Rate"
+            value={`${currencyFormatter.format(calcHourlyRate(block.scheduledTimeStart, block.scheduledTimeEnd, block.pay))} / hour`}
+          />
+          <DataCell
+            label="Actual Hourly Rate"
+            value={`${currencyFormatter.format(calcHourlyRate(block.timeStart, block.timeEnd, block.pay))} / hour`}
+          />
+          <DataCell
+            label="Total Milage"
+            value={`${calcTotalMilage(block.milageStart, block.milageEnd)} miles`}
+          />
           <div className="flex gap-4">
             <button
               className="focus:shadow-outline rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 focus:outline-none"
@@ -480,7 +476,7 @@ function BlocksFeed(props: BlockFeedProps) {
             </button>
             <button
               className="focus:shadow-outline rounded bg-red-500 px-4 py-2 font-bold text-white hover:bg-red-700 focus:outline-none"
-              onClick={() => handleHemoveBlock(block.id)}
+              onClick={() => handleRemoveBlock(block.id)}
             >
               Delete
             </button>
@@ -490,3 +486,9 @@ function BlocksFeed(props: BlockFeedProps) {
     </div>
   );
 }
+
+const DataCell: React.FC<DataCellProps> = ({ label, value }) => (
+  <div>
+    <span className="font-bold">{label}:</span> {value}
+  </div>
+);
