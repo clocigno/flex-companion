@@ -61,10 +61,10 @@ export default function Blocks() {
   };
 
   return (
-    <div className="flex justify-center gap-8 bg-slate-100 p-8">
+    <div className="mt-24 flex justify-center gap-8 bg-slate-100 p-8">
       <div>
         <button
-          className="focus:shadow-outline sticky top-8 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
+          className="focus:shadow-outline sticky top-32 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
           onClick={handleAddBlock}
         >
           Add Block

@@ -69,7 +69,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-svh  bg-slate-100 ">
+    <div className="mt-24  min-h-svh bg-slate-100">
       <div className="flex w-full flex-wrap justify-center gap-4 py-8">
         <div className="text-nowrap rounded bg-white p-4 shadow-lg">
           <h2 className="text-bold text-3xl">Totals</h2>
