@@ -61,7 +61,7 @@ export default function Blocks() {
   };
 
   return (
-    <div className="flex justify-center gap-8 p-8">
+    <div className="flex justify-center gap-8 bg-slate-100 p-8">
       <div>
         <button
           className="focus:shadow-outline sticky top-8 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
@@ -442,7 +442,7 @@ function BlocksFeed(props: BlockFeedProps) {
       {data.map((block) => (
         <div
           key={block.id}
-          className="grid grid-cols-2 gap-3 rounded p-4 shadow-lg"
+          className="grid grid-cols-2 gap-3 rounded bg-white p-4 shadow-lg"
         >
           <DataCell label="Pickup Location" value={block.pickupLocation} />
           <DataCell

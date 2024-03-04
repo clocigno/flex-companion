@@ -58,6 +58,7 @@ export default function Dashboard() {
     fontName: "Ember, sans-serif",
     titleTextStyle: {
       fontSize: 32,
+      bold: false,
     },
     legend: {
       position: "bottom",
@@ -68,23 +69,22 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="mt-8 flex w-full flex-col items-center justify-center gap-8">
-      <h1 className="text-bold text-5xl">Dashboard</h1>
-      <div className="flex w-full flex-wrap justify-center gap-4">
-        <div className="text-nowrap rounded p-4 shadow-lg">
+    <div className="min-h-svh  bg-slate-100 ">
+      <div className="flex w-full flex-wrap justify-center gap-4 py-8">
+        <div className="text-nowrap rounded bg-white p-4 shadow-lg">
           <h2 className="text-bold text-3xl">Totals</h2>
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xl">
-            <span>Block Count:</span>
-            <span>{blockCount}</span>
             <span>Time:</span>
             <span>{numberFormatter.format(totalTime)} hours</span>
             <span>Milage:</span>
             <span>{totalMilage} miles</span>
             <span>Pay:</span>
             <span>{currencyFormatter.format(totalPay)}</span>
+            <span>Block Count:</span>
+            <span>{blockCount}</span>
           </div>
         </div>
-        <div className="text-nowrap rounded p-4 shadow-lg">
+        <div className="text-nowrap rounded bg-white p-4 shadow-lg">
           <h2 className="text-bold text-3xl">Averages (Per Block)</h2>
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xl">
             <span>Average time:</span>
@@ -95,7 +95,7 @@ export default function Dashboard() {
             <span>{currencyFormatter.format(avgPay)}</span>
           </div>
         </div>
-        <div className="rounded p-4 shadow-lg">
+        <div className="rounded bg-white p-4 shadow-lg">
           <Chart
             chartType="PieChart"
             data={pieChartData}
