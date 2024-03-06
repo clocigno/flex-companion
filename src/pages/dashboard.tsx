@@ -1,10 +1,35 @@
 import { api } from "~/utils/api";
 import { Chart } from "react-google-charts";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import { useCallback, useEffect } from "react";
 
 export default function Dashboard() {
-  const { data } = api.block.getLatest.useQuery();
+  const { data, isLoading } = api.block.getLatest.useQuery();
+  const { data: sessionData } = useSession();
+  const router = useRouter();
 
-  if (!data) {
+  const handleRedirect = useCallback(() => {
+    if (!sessionData) {
+      void router.replace("/");
+    }
+  }, [sessionData, router]);
+
+  const handleNoBlocksRedirect = useCallback(() => {
+    if (sessionData && !isLoading && data?.length === 0) {
+      void router.replace("/blocks");
+    }
+  }, [sessionData, router, isLoading, data]);
+
+  useEffect(() => {
+    void handleRedirect();
+  }, [handleRedirect]);
+
+  useEffect(() => {
+    void handleNoBlocksRedirect();
+  }, [handleNoBlocksRedirect]);
+
+  if (!data || !sessionData || isLoading || data.length === 0) {
     return null;
   }
 
@@ -69,8 +94,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="mt-24  min-h-svh bg-slate-100">
-      <div className="flex w-full flex-wrap justify-center gap-4 py-8">
+    <div className="min-h-svh bg-slate-100">
+      <div className="mt-24 flex w-full flex-wrap justify-center gap-4 py-8">
         <div className="text-nowrap rounded bg-white p-4 shadow-lg">
           <h2 className="text-bold text-3xl">Totals</h2>
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xl">

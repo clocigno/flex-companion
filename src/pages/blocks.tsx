@@ -11,6 +11,9 @@ import type { TRPCClientErrorLike } from "@trpc/client";
 import type { AppRouter } from "~/server/api/root";
 import { FaRegTrashCan } from "react-icons/fa6";
 import { IconContext } from "react-icons";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import { useCallback } from "react";
 
 type BlockFormProps = {
   formRef: React.RefObject<HTMLDialogElement>;
@@ -60,23 +63,42 @@ export default function Blocks() {
     formRef.current?.showModal();
   };
 
+  const { data: sessionData } = useSession();
+  const router = useRouter();
+
+  const handleRedirect = useCallback(() => {
+    if (!sessionData) {
+      void router.replace("/");
+    }
+  }, [sessionData, router]);
+
+  useEffect(() => {
+    void handleRedirect();
+  }, [handleRedirect]);
+
+  if (!sessionData) {
+    return null;
+  }
+
   return (
-    <div className="mt-24 flex justify-center gap-8 bg-slate-100 p-8">
-      <div>
-        <button
-          className="focus:shadow-outline sticky top-32 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
-          onClick={handleAddBlock}
-        >
-          Add Block
-        </button>
+    <div className="min-h-svh bg-slate-100">
+      <div className="mt-24 flex justify-center gap-8 p-8">
+        <div>
+          <button
+            className="focus:shadow-outline sticky top-32 rounded bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 focus:outline-none"
+            onClick={handleAddBlock}
+          >
+            Add Block
+          </button>
+        </div>
+        <dialog ref={formRef}>
+          <BlockForm formRef={formRef} defaultValues={formDefaultValues} />
+        </dialog>
+        <BlocksFeed
+          formRef={formRef}
+          setFormDefaultValues={setFormDefaultValues}
+        />
       </div>
-      <dialog ref={formRef}>
-        <BlockForm formRef={formRef} defaultValues={formDefaultValues} />
-      </dialog>
-      <BlocksFeed
-        formRef={formRef}
-        setFormDefaultValues={setFormDefaultValues}
-      />
     </div>
   );
 }
@@ -436,6 +458,16 @@ function BlocksFeed(props: BlockFeedProps) {
   const handleRemoveBlock = (id: number) => {
     remove(id);
   };
+
+  if (data.length === 0) {
+    return (
+      <div className="flex items-start justify-center">
+        <h1 className="text-3xl text-orange-500 ">
+          &larr; Start by adding a block here
+        </h1>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
