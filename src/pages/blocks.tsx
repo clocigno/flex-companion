@@ -461,10 +461,10 @@ function BlocksFeed(props: BlockFeedProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex items-start justify-center">
-        <h1 className="text-3xl text-orange-500 ">
+      <div className="min-h-svh ">
+        <div className="sticky top-32 text-3xl text-orange-500">
           &larr; Start by adding a block here
-        </h1>
+        </div>
       </div>
     );
   }
