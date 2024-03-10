@@ -61,6 +61,7 @@ export default function Dashboard() {
   const avgTime = totalTime / data.length;
   const avgMilage = totalMilage / data.length;
   const avgPay = totalPay / data.length;
+  const avgRate = avgPay / avgTime;
 
   const pickupLocationCount = data.reduce(
     (acc, block) => {
@@ -118,6 +119,8 @@ export default function Dashboard() {
             <span>{numberFormatter.format(avgMilage)} miles</span>
             <span>Average pay:</span>
             <span>{currencyFormatter.format(avgPay)}</span>
+            <span>Average rate:</span>
+            <span>{currencyFormatter.format(avgRate)} / hour</span>
           </div>
         </div>
         <div className="rounded bg-white p-4 shadow-lg">
