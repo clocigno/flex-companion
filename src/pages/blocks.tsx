@@ -141,6 +141,7 @@ function BlockForm(props: BlockFormProps) {
     handleSubmit,
     setValue,
     formState: { errors },
+    reset,
   } = useForm({
     resolver: zodResolver(schema),
   });
@@ -149,6 +150,7 @@ function BlockForm(props: BlockFormProps) {
 
   const onSuccessfulSubmit = () => {
     props.formRef.current?.close();
+    reset();
     void ctx.block.getLatest.invalidate();
   };
 
